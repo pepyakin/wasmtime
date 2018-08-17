@@ -13,3 +13,4 @@ cranelift-wasm = "0.18.1"
 region = "0.3.0"
 wasmtime-environ = { path = "../environ" }
 memmap = "0.6.2"
+nix = "0.11"

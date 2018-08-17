@@ -9,6 +9,7 @@ use std::ptr::{self, write_unaligned};
 use wasmtime_environ::{
     compile_module, Compilation, Module, ModuleTranslation, Relocation, RelocationTarget,
 };
+use nix::sys::signal::{sigaction, SigAction, SIGILL, SaFlags, SigSet, SigHandler};
 
 /// Executes a module that has been translated with the `wasmtime-environ` environment
 /// implementation.
@@ -149,8 +150,30 @@ pub fn execute(
     // the generated code.Thanks to this, we can transmute the code region into a first-class
     // Rust function and call it.
     unsafe {
-        let start_func = transmute::<_, fn(*const *mut u8)>(code_buf.as_ptr());
-        start_func(vmctx.as_ptr());
+        let sa = SigAction::new(SigHandler::Handler(catch_sigill), SaFlags::empty(), SigSet::empty());
+        sigaction(SIGILL, &sa).unwrap();
+
+        let result = setjmp((&mut setjmp_buffer[..]).as_mut_ptr() as *mut ::nix::libc::c_void);
+        if result == 0 {
+            let start_func = transmute::<_, fn(*const *mut u8)>(code_buf.as_ptr());
+            start_func(vmctx.as_ptr());
+        } else {
+            panic!("error: {}", result);
+        }
     }
     Ok(())
+}
+
+// why 27?
+static mut setjmp_buffer: [::nix::libc::c_int; 27] = [0; 27];
+
+extern "C" {
+	fn setjmp(env: *mut ::nix::libc::c_void) -> ::nix::libc::c_int;
+	fn longjmp(env: *mut ::nix::libc::c_void, val: ::nix::libc::c_int);
+}
+
+extern "C" fn catch_sigill(_: ::nix::libc::c_int) {
+    unsafe {
+        longjmp((&mut setjmp_buffer).as_mut_ptr() as *mut ::nix::libc::c_void, 3);
+    }
 }

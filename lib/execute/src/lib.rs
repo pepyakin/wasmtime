@@ -17,6 +17,7 @@ extern crate cranelift_wasm;
 extern crate memmap;
 extern crate region;
 extern crate wasmtime_environ;
+extern crate nix;
 
 mod execute;
 mod instance;
