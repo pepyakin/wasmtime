@@ -272,6 +272,12 @@ fn make_trampoline(
     // Add the caller `vmctx` parameter.
     wrapper_sig.params.push(ir::AbiParam::new(pointer_type));
 
+    // Add the stack limit parameter.
+    wrapper_sig.params.push(ir::AbiParam::special(
+        pointer_type,
+        ir::ArgumentPurpose::StackLimit,
+    ));
+
     // Add the `values_vec` parameter.
     wrapper_sig.params.push(ir::AbiParam::new(pointer_type));
 
@@ -287,9 +293,9 @@ fn make_trampoline(
         builder.switch_to_block(block0);
         builder.seal_block(block0);
 
-        let (vmctx_ptr_val, caller_vmctx_ptr_val, values_vec_ptr_val) = {
+        let (vmctx_ptr_val, caller_vmctx_ptr_val, stack_limit_val, values_vec_ptr_val) = {
             let params = builder.func.dfg.ebb_params(block0);
-            (params[0], params[1], params[2])
+            (params[0], params[1], params[2], params[3])
         };
 
         // Load the argument values out of `values_vec`.
@@ -302,14 +308,16 @@ fn make_trampoline(
                 match i {
                     0 => vmctx_ptr_val,
                     1 => caller_vmctx_ptr_val,
+                    2 => stack_limit_val,
                     _ =>
-                    // i - 2 because vmctx and caller vmctx aren't passed through `values_vec`.
+                    // i - 3 because vmctx, caller vmctx and the stack limit aren't passed through
+                    // `values_vec`.
                     {
                         builder.ins().load(
                             r.value_type,
                             mflags,
                             values_vec_ptr_val,
-                            ((i - 2) * value_size) as i32,
+                            ((i - 3) * value_size) as i32,
                         )
                     }
                 }

@@ -127,10 +127,10 @@ impl WrappedCallable for WasmtimeFn {
             } => (*vmctx, *address, signature.clone()),
             _ => panic!("unexpected export type in Callable"),
         };
-        if signature.params.len() - 2 != params.len() {
+        if signature.params.len() - 3 != params.len() {
             return Err(Trap::new(format!(
                 "expected {} arguments, got {}",
-                signature.params.len() - 2,
+                signature.params.len() - 3,
                 params.len()
             )));
         }
@@ -146,7 +146,7 @@ impl WrappedCallable for WasmtimeFn {
         let mut values_vec = vec![0; max(params.len(), results.len())];
 
         // Store the argument values into `values_vec`.
-        let param_tys = signature.params.iter().skip(2);
+        let param_tys = signature.params.iter().skip(3);
         for ((arg, slot), ty) in params.iter().zip(&mut values_vec).zip(param_tys) {
             if arg.ty().get_wasmtime_type() != Some(ty.value_type) {
                 return Err(Trap::new("argument type mismatch"));
@@ -165,9 +165,11 @@ impl WrappedCallable for WasmtimeFn {
 
         // Call the trampoline.
         if let Err(error) = unsafe {
+            let stack_limit = usize::max_value() as *const ();
             wasmtime_runtime::wasmtime_call_trampoline(
                 vmctx,
                 ptr::null_mut(),
+                stack_limit,
                 exec_code_buf,
                 values_vec.as_mut_ptr() as *mut u8,
             )

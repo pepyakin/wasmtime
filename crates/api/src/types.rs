@@ -212,6 +212,10 @@ impl FuncType {
             .collect::<Option<Vec<_>>>()?;
         params.insert(0, AbiParam::special(types::I64, ArgumentPurpose::VMContext));
         params.insert(1, AbiParam::new(pointer_type));
+        params.insert(
+            2,
+            AbiParam::special(types::I64, ArgumentPurpose::StackLimit),
+        );
 
         Some(Signature {
             params,
@@ -227,7 +231,7 @@ impl FuncType {
         let params = signature
             .params
             .iter()
-            .skip(2) // skip the caller/callee vmctx
+            .skip(3) // skip the caller/callee vmctx and stack limit.
             .map(|p| from_wasmtime_abiparam(p))
             .collect::<Option<Vec<_>>>()?;
         let results = signature

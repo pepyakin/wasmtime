@@ -84,9 +84,9 @@ unsafe extern "C" fn stub_fn(
             let signature = &module.signatures[module.functions[FuncIndex::new(call_id as usize)]];
 
             let mut args = Vec::new();
-            for i in 2..signature.params.len() {
+            for i in 3..signature.params.len() {
                 args.push(Val::read_value_from(
-                    values_vec.offset(i as isize - 2),
+                    values_vec.offset(i as isize - 3),
                     signature.params[i].value_type,
                 ))
             }
@@ -136,16 +136,23 @@ fn make_trampoline(
     // Add the caller `vmctx` parameter.
     stub_sig.params.push(ir::AbiParam::new(pointer_type));
 
+    // Add the stack limit parameter.
+    stub_sig.params.push(ir::AbiParam::special(
+        pointer_type,
+        ir::ArgumentPurpose::StackLimit,
+    ));
+
     // Add the `call_id` parameter.
     stub_sig.params.push(ir::AbiParam::new(types::I32));
 
     // Add the `values_vec` parameter.
     stub_sig.params.push(ir::AbiParam::new(pointer_type));
 
-    // Compute the size of the values vector. The vmctx and caller vmctx are passed separately.
+    // Compute the size of the values vector. The vmctx, caller vmctx and the stack limit are passed
+    // separately.
     let value_size = 16;
     let values_vec_len = ((value_size as usize)
-        * cmp::max(signature.params.len() - 2, signature.returns.len()))
+        * cmp::max(signature.params.len() - 3, signature.returns.len()))
         as u32;
 
     let mut context = Context::new();
@@ -167,7 +174,7 @@ fn make_trampoline(
 
         let values_vec_ptr_val = builder.ins().stack_addr(pointer_type, ss, 0);
         let mflags = MemFlags::trusted();
-        for i in 2..signature.params.len() {
+        for i in 3..signature.params.len() {
             if i == 0 {
                 continue;
             }
@@ -177,18 +184,20 @@ fn make_trampoline(
                 mflags,
                 val,
                 values_vec_ptr_val,
-                ((i - 2) * value_size) as i32,
+                ((i - 3) * value_size) as i32,
             );
         }
 
         let ebb_params = builder.func.dfg.ebb_params(block0);
         let vmctx_ptr_val = ebb_params[0];
         let caller_vmctx_ptr_val = ebb_params[1];
+        let stack_limit_val = ebb_params[2];
         let call_id_val = builder.ins().iconst(types::I32, call_id as i64);
 
         let callee_args = vec![
             vmctx_ptr_val,
             caller_vmctx_ptr_val,
+            stack_limit_val,
             call_id_val,
             values_vec_ptr_val,
         ];

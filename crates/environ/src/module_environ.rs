@@ -380,6 +380,11 @@ pub fn translate_signature(mut sig: ir::Signature, pointer_type: ir::Type) -> ir
     );
     // Prepend the caller vmctx argument.
     sig.params.insert(1, AbiParam::new(pointer_type));
+    // Prepend the stack limit.
+    sig.params.insert(
+        2,
+        AbiParam::special(pointer_type, ArgumentPurpose::StackLimit),
+    );
     sig
 }
 

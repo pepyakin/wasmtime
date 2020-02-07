@@ -365,7 +365,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
     fn is_wasm_parameter(&self, _signature: &ir::Signature, index: usize) -> bool {
         // The first two parameters are the vmctx and caller vmctx. The rest are
         // the wasm parameters.
-        index >= 2
+        index >= 3
     }
 
     fn make_table(&mut self, func: &mut ir::Function, index: TableIndex) -> WasmResult<ir::Table> {
@@ -617,8 +617,9 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             }
         }
 
-        let mut real_call_args = Vec::with_capacity(call_args.len() + 2);
+        let mut real_call_args = Vec::with_capacity(call_args.len() + 3);
         let caller_vmctx = pos.func.special_param(ArgumentPurpose::VMContext).unwrap();
+        let stack_limit = pos.func.special_param(ArgumentPurpose::StackLimit).unwrap();
 
         // First append the callee vmctx address.
         let vmctx = pos.ins().load(
@@ -629,6 +630,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
         );
         real_call_args.push(vmctx);
         real_call_args.push(caller_vmctx);
+        real_call_args.push(stack_limit);
 
         // Then append the regular call arguments.
         real_call_args.extend_from_slice(call_args);
@@ -643,8 +645,9 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
         callee: ir::FuncRef,
         call_args: &[ir::Value],
     ) -> WasmResult<ir::Inst> {
-        let mut real_call_args = Vec::with_capacity(call_args.len() + 2);
+        let mut real_call_args = Vec::with_capacity(call_args.len() + 3);
         let caller_vmctx = pos.func.special_param(ArgumentPurpose::VMContext).unwrap();
+        let stack_limit = pos.func.special_param(ArgumentPurpose::StackLimit).unwrap();
 
         // Handle direct calls to locally-defined functions.
         if !self.module.is_imported_function(callee_index) {
@@ -654,6 +657,9 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
 
             // Then append the caller vmctx address.
             real_call_args.push(caller_vmctx);
+
+            // Then append the stack limit.
+            real_call_args.push(stack_limit);
 
             // Then append the regular call arguments.
             real_call_args.extend_from_slice(call_args);
@@ -681,6 +687,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
         let vmctx = pos.ins().load(pointer_type, mem_flags, base, vmctx_offset);
         real_call_args.push(vmctx);
         real_call_args.push(caller_vmctx);
+        real_call_args.push(stack_limit);
 
         // Then append the regular call arguments.
         real_call_args.extend_from_slice(call_args);

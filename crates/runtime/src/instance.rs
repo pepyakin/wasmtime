@@ -366,7 +366,8 @@ impl Instance {
         };
 
         // Make the call.
-        unsafe { wasmtime_call(callee_vmctx, self.vmctx_ptr(), callee_address) }
+        let stack_limit = usize::max_value() as *const ();
+        unsafe { wasmtime_call(callee_vmctx, self.vmctx_ptr(), stack_limit, callee_address) }
             .map_err(InstantiationError::StartTrap)
     }
 

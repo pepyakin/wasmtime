@@ -17,6 +17,7 @@ extern "C" {
         jmp_buf: *mut *const u8,
         vmctx: *mut u8,
         caller_vmctx: *mut u8,
+        stack_limit: *mut u8,
         callee: *const VMFunctionBody,
         values_vec: *mut u8,
     ) -> i32;
@@ -24,6 +25,7 @@ extern "C" {
         jmp_buf: *mut *const u8,
         vmctx: *mut u8,
         caller_vmctx: *mut u8,
+        stack_limit: *mut u8,
         callee: *const VMFunctionBody,
     ) -> i32;
     fn Unwind(jmp_buf: *const u8) -> !;
@@ -140,6 +142,7 @@ impl std::error::Error for Trap {}
 pub unsafe extern "C" fn wasmtime_call_trampoline(
     vmctx: *mut VMContext,
     caller_vmctx: *mut VMContext,
+    stack_limit: *const (),
     callee: *const VMFunctionBody,
     values_vec: *mut u8,
 ) -> Result<(), Trap> {
@@ -148,6 +151,7 @@ pub unsafe extern "C" fn wasmtime_call_trampoline(
             cx.jmp_buf.as_ptr(),
             vmctx as *mut u8,
             caller_vmctx as *mut u8,
+            stack_limit as *mut u8,
             callee,
             values_vec,
         )
@@ -160,6 +164,7 @@ pub unsafe extern "C" fn wasmtime_call_trampoline(
 pub unsafe extern "C" fn wasmtime_call(
     vmctx: *mut VMContext,
     caller_vmctx: *mut VMContext,
+    stack_limit: *const (),
     callee: *const VMFunctionBody,
 ) -> Result<(), Trap> {
     CallThreadState::new(vmctx).with(|cx| {
@@ -167,6 +172,7 @@ pub unsafe extern "C" fn wasmtime_call(
             cx.jmp_buf.as_ptr(),
             vmctx as *mut u8,
             caller_vmctx as *mut u8,
+            stack_limit as *mut u8,
             callee,
         )
     })

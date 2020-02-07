@@ -7,7 +7,8 @@ int WasmtimeCallTrampoline(
     void **buf_storage,
     void *vmctx,
     void *caller_vmctx,
-    void (*body)(void*, void*, void*),
+    void *stack_limit,
+    void (*body)(void*, void*, void*, void*),
     void *args)
 {
   jmp_buf buf;
@@ -15,18 +16,23 @@ int WasmtimeCallTrampoline(
     return 0;
   }
   *buf_storage = &buf;
-  body(vmctx, caller_vmctx, args);
+  body(vmctx, caller_vmctx, stack_limit, args);
   return 1;
 }
 
 extern "C"
-int WasmtimeCall(void **buf_storage, void *vmctx, void *caller_vmctx, void (*body)(void*, void*)) {
+int WasmtimeCall(
+  void **buf_storage,
+  void *vmctx,
+  void *caller_vmctx,
+  void *stack_limit,
+  void (*body)(void*, void*, void*)) {
   jmp_buf buf;
   if (setjmp(buf) != 0) {
     return 0;
   }
   *buf_storage = &buf;
-  body(vmctx, caller_vmctx);
+  body(vmctx, caller_vmctx, stack_limit);
   return 1;
 }
 
