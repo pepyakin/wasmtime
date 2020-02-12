@@ -1168,6 +1168,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "psm"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b14fc68b454f875abc8354c2555e1d56596f74833ddc0f77f87f4871ed6a30e0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "pyo3"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1892,6 +1901,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "pretty_env_logger",
+ "psm",
  "rayon",
  "region",
  "rustc-demangle",
@@ -2041,6 +2051,7 @@ dependencies = [
  "cranelift-native",
  "cranelift-wasm",
  "more-asserts",
+ "psm",
  "region",
  "target-lexicon",
  "thiserror",
@@ -2086,6 +2097,7 @@ dependencies = [
  "libc",
  "memoffset",
  "more-asserts",
+ "psm",
  "region",
  "thiserror",
  "wasmtime-environ",

@@ -366,9 +366,16 @@ impl Instance {
         };
 
         // Make the call.
-        let stack_limit = usize::max_value() as *const ();
-        unsafe { wasmtime_call(callee_vmctx, self.vmctx_ptr(), stack_limit, callee_address) }
-            .map_err(InstantiationError::StartTrap)
+        let stack_limit = psm::stack_pointer() as usize - (1024 * 1024);
+        unsafe {
+            wasmtime_call(
+                callee_vmctx,
+                self.vmctx_ptr(),
+                stack_limit as *const (),
+                callee_address,
+            )
+        }
+        .map_err(InstantiationError::StartTrap)
     }
 
     /// Invoke the WebAssembly start function of the instance, if one is present.

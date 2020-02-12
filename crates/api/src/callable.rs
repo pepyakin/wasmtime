@@ -165,11 +165,11 @@ impl WrappedCallable for WasmtimeFn {
 
         // Call the trampoline.
         if let Err(error) = unsafe {
-            let stack_limit = usize::max_value() as *const ();
+            let stack_limit = psm::stack_pointer() as usize - (1024 * 1024);
             wasmtime_runtime::wasmtime_call_trampoline(
                 vmctx,
                 ptr::null_mut(),
-                stack_limit,
+                stack_limit as *const (),
                 exec_code_buf,
                 values_vec.as_mut_ptr() as *mut u8,
             )

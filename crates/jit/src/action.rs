@@ -190,11 +190,11 @@ pub fn invoke(
     // Call the trampoline. Pass a null `caller_vmctx` argument as `invoke` is
     // all about calling from the outside world rather than from an instance.
     if let Err(trap) = unsafe {
-        let stack_limit = usize::max_value() as *const ();
+        let stack_limit = psm::stack_pointer() as usize - (1024 * 1024);
         wasmtime_call_trampoline(
             callee_vmctx,
             ptr::null_mut(),
-            stack_limit,
+            stack_limit as *const (),
             exec_code_buf,
             values_vec.as_mut_ptr() as *mut u8,
         )
